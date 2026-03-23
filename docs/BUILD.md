@@ -13,6 +13,9 @@ Note: This document will be updated as soon as target specs and build scripts ar
 3. Package the bootloader and kernel into a UEFI image.
 4. Run via QEMU using UEFI firmware.
 
+Kernel path expected by the bootloader:
+- /EFI/ProjectNN/kernel.elf
+
 ## Planned Run Targets
 - x86_64: QEMU with OVMF
 - aarch64: QEMU with AAVMF

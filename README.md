@@ -13,6 +13,7 @@ Rust-based kernel with a custom UEFI bootloader, built for multiple CPU architec
 
 ## Repository Layout
 - /bootloader/ custom UEFI bootloader
+- /boot-protocol/ shared boot handoff structs
 - /kernel/ no_std kernel
 - /targets/ custom Rust target specs
 - /docs/ documentation
