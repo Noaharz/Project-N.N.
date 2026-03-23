@@ -22,6 +22,10 @@ This repo currently targets kernel-only v1 to establish a solid base before user
 - Early console output
 - Physical memory management bootstrap
 
+## Boot Handoff (v1)
+- Memory map (UEFI descriptors)
+- Optional GOP framebuffer info (base, size, format)
+
 ## Multi-Architecture Strategy
 - Architecture-specific code is isolated under /kernel/src/arch/
 - Shared kernel services live in /kernel/src/

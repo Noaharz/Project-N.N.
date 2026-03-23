@@ -1,9 +1,10 @@
 #![no_std]
 #![no_main]
 
-use boot_protocol::{Handoff, MemoryMapInfo, HANDOFF_MAGIC};
+use boot_protocol::{FramebufferFormat, FramebufferInfo, Handoff, MemoryMapInfo, HANDOFF_MAGIC};
 use core::{mem::size_of, panic::PanicInfo, ptr};
 use uefi::prelude::*;
+use uefi::proto::console::gop::{GraphicsOutput, PixelFormat};
 use uefi::proto::media::file::{File, FileAttribute, FileInfo, FileMode, RegularFile};
 use uefi::table::boot::{AllocateType, MemoryType};
 
@@ -31,6 +32,15 @@ fn efi_main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
     };
 
     let bs = system_table.boot_services();
+    let framebuffer = get_framebuffer_info(bs).unwrap_or(FramebufferInfo {
+        base: core::ptr::null_mut(),
+        size: 0,
+        width: 0,
+        height: 0,
+        stride: 0,
+        format: FramebufferFormat::Unknown,
+    });
+
     let (_mmap_buf, mmap_info, map_key) = match build_memory_map(bs) {
         Ok(v) => v,
         Err(status) => {
@@ -42,14 +52,12 @@ fn efi_main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
     let handoff = Handoff {
         magic: HANDOFF_MAGIC,
         memory_map: mmap_info,
+        framebuffer,
     };
 
-    let _rt = match unsafe { system_table.exit_boot_services(image_handle, map_key) } {
+    let _rt = match exit_boot_services_with_retry(system_table, image_handle, map_key) {
         Ok(rt) => rt,
-        Err((mut st, status)) => {
-            let _ = st.stdout().write_str("Exit boot services failed\r\n");
-            return status;
-        }
+        Err(status) => return status,
     };
 
     let entry: extern "C" fn(*const Handoff) -> ! = unsafe { core::mem::transmute(entry_addr) };
@@ -106,6 +114,47 @@ fn build_memory_map(
     };
 
     Ok((mmap_buf, info, mmap.key))
+}
+
+fn exit_boot_services_with_retry(
+    system_table: SystemTable<Boot>,
+    image_handle: Handle,
+    map_key: uefi::table::boot::MemoryMapKey,
+) -> Result<uefi::table::SystemTable<uefi::table::Runtime>, Status> {
+    match unsafe { system_table.exit_boot_services(image_handle, map_key) } {
+        Ok(rt) => Ok(rt),
+        Err((mut st, _status)) => {
+            let _ = st.stdout().write_str("Retry exit boot services\r\n");
+            let bs = st.boot_services();
+            let (_buf, _info, new_key) = build_memory_map(bs)?;
+            match unsafe { st.exit_boot_services(image_handle, new_key) } {
+                Ok(rt) => Ok(rt),
+                Err((_st, status)) => Err(status),
+            }
+        }
+    }
+}
+
+fn get_framebuffer_info(bs: &BootServices) -> Option<FramebufferInfo> {
+    let gop_ptr = bs.locate_protocol::<GraphicsOutput>().ok()?;
+    let gop = unsafe { &mut *gop_ptr.get() };
+    let mode = gop.current_mode_info();
+    let resolution = mode.resolution();
+    let stride = mode.stride() as u32;
+    let format = match mode.pixel_format() {
+        PixelFormat::Rgb => FramebufferFormat::Rgb,
+        PixelFormat::Bgr => FramebufferFormat::Bgr,
+        _ => FramebufferFormat::Unknown,
+    };
+    let fb = gop.frame_buffer();
+    Some(FramebufferInfo {
+        base: fb.as_mut_ptr(),
+        size: fb.size(),
+        width: resolution.0,
+        height: resolution.1,
+        stride,
+        format,
+    })
 }
 
 fn load_elf64(image: &[u8], bs: &BootServices) -> Result<u64, Status> {

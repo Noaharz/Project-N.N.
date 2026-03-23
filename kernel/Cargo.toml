@@ -6,6 +6,7 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+boot-protocol = { path = "../boot-protocol" }
 
 [profile.dev]
 panic = "abort"

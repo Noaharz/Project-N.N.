@@ -6,7 +6,7 @@ mod console;
 mod mem;
 
 use core::panic::PanicInfo;
-use boot_protocol::Handoff;
+use boot_protocol::{FramebufferFormat, Handoff};
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
@@ -19,6 +19,13 @@ pub extern "C" fn _start(_handoff: *const Handoff) -> ! {
     arch::init();
     console::init();
 
-    // TODO: replace with real output once VGA/serial are wired.
+    console::write_str("Kernel reached _start\\n");
+
+    // Touch the handoff to avoid unused warnings later when we start using it.
+    unsafe {
+        let _fb = (*_handoff).framebuffer.format as u32;
+        let _ = _fb == FramebufferFormat::Unknown as u32;
+    }
+
     loop {}
 }
