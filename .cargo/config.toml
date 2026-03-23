@@ -1,0 +1,2 @@
+# Workspace-wide cargo config.
+# Targets are defined in /targets and selected per build.
