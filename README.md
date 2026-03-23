@@ -31,4 +31,4 @@ Rust-based kernel with a custom UEFI bootloader, built for multiple CPU architec
 - Safety first: Rust no_std with explicit unsafe boundaries
 
 ## License
-MIT. See /LICENSE.
+GPL-3.0. See /LICENSE.

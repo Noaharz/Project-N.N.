@@ -1,0 +1,4 @@
+{
+  "inherits": "aarch64-unknown-uefi",
+  "panic-strategy": "abort"
+}

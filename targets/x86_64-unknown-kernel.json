@@ -1,0 +1,7 @@
+{
+  "inherits": "x86_64-unknown-none",
+  "panic-strategy": "abort",
+  "disable-redzone": true,
+  "relocation-model": "static",
+  "code-model": "kernel"
+}

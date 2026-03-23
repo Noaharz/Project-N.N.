@@ -1,0 +1,6 @@
+{
+  "inherits": "aarch64-unknown-none",
+  "panic-strategy": "abort",
+  "relocation-model": "static",
+  "code-model": "small"
+}
